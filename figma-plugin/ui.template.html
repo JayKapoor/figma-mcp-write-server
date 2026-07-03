@@ -216,8 +216,19 @@
             let ws = null;
             let isConnected = false;
             let connectionAttempts = 0;
-            let maxReconnectAttempts = 10;
+            let maxReconnectAttempts = Infinity; // survive server restarts
             let reconnectTimer = null;
+
+            // File identity (sent by the main thread; used for file-key routing)
+            let fileIdentity = { fileKey: null, fileName: null };
+
+            // Port scan: try the configured port first, then walk the range.
+            // Lets the plugin find the server even if the default port was taken.
+            const BASE_PORT = {{PORT}};
+            const PORT_RANGE = 10;
+            let portOffset = 0;
+            let currentPort = BASE_PORT;
+            let socketEverConnected = false;
             let debugMode = false;
             let startTime = Date.now();
             let uptimeTimer = null;
@@ -333,19 +344,27 @@
                 }
 
                 connectionAttempts++;
+                currentPort = BASE_PORT + portOffset;
                 // Silent connection attempt
-                updateConnectionStatus(false, "Connecting...", true);
+                updateConnectionStatus(false, `Connecting to :${currentPort}...`, true);
 
                 try {
-                    ws = new WebSocket("ws://localhost:{{PORT}}");
+                    socketEverConnected = false;
+                    ws = new WebSocket("ws://localhost:" + currentPort);
 
                     ws.onopen = () => {
                         // Silent connection success
-                        updateConnectionStatus(true, "Connected to localhost:{{PORT}}");
+                        socketEverConnected = true;
+                        updateConnectionStatus(true, `Connected to localhost:${currentPort}`);
                         connectionAttempts = 0;
                         clearReconnectTimer();
-                        ws.send(JSON.stringify({ type: "PLUGIN_HELLO", version: "{{VERSION}}" }));
-                        
+                        ws.send(JSON.stringify({
+                            type: "PLUGIN_HELLO",
+                            version: "{{VERSION}}",
+                            fileKey: fileIdentity.fileKey,
+                            fileName: fileIdentity.fileName
+                        }));
+
                         // Notify main thread of connection status
                         parent.postMessage({
                             pluginMessage: {
@@ -367,8 +386,12 @@
                     ws.onclose = () => {
                         log("Connection closed");
                         updateConnectionStatus(false, "Disconnected");
+                        // Never reached the server on this port: advance the scan
+                        if (!socketEverConnected) {
+                            portOffset = (portOffset + 1) % PORT_RANGE;
+                        }
                         scheduleReconnect();
-                        
+
                         // Notify main thread of disconnection
                         parent.postMessage({
                             pluginMessage: {
@@ -405,7 +428,12 @@
                     return;
                 }
 
-                const delay = Math.min(1000 * Math.pow(2, connectionAttempts - 1), 30000);
+                // Scanning ports: cycle fast so the whole range is covered in seconds.
+                // Lost an established connection: back off up to 30s and keep trying.
+                const scanning = !socketEverConnected && (connectionAttempts % PORT_RANGE) !== 0;
+                const delay = scanning
+                    ? 300
+                    : Math.min(1000 * Math.pow(2, Math.min(connectionAttempts, 8)), 30000);
 
                 reconnectTimer = setTimeout(() => {
                     log(`Reconnecting in ${delay}ms`);
@@ -494,6 +522,20 @@
             window.addEventListener("message", (event) => {
                 const msg = event.data.pluginMessage;
                 if (!msg) return;
+
+                if (msg.type === "FILE_IDENTITY") {
+                    // Main thread announced which file we are running in
+                    fileIdentity = { fileKey: msg.fileKey || null, fileName: msg.fileName || null };
+                    // If the socket connected before identity arrived, update the server
+                    if (ws && isConnected) {
+                        ws.send(JSON.stringify({
+                            type: "PLUGIN_IDENTITY",
+                            fileKey: fileIdentity.fileKey,
+                            fileName: fileIdentity.fileName
+                        }));
+                    }
+                    return;
+                }
 
                 if (msg.type === "CONVERT_BASE64_TO_UINT8ARRAY") {
                     try {

@@ -230,6 +230,7 @@ export class FigmaMCPServer {
         res.end(JSON.stringify({
           status: 'ok',
           pluginConnected: this.wsServer.isPluginConnected(),
+          connectedFiles: this.wsServer.getConnectedFiles(),
           version: VERSION,
           pid: process.pid,
           activeSessions: this.sessions.size,

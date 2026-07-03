@@ -102,6 +102,10 @@ class FigmaPlugin {
       // Show UI for WebSocket connection and monitoring
       figma.showUI(__html__, { width: 224, height: 210 });
 
+      // Tell the UI thread which file we are in so it can announce itself to
+      // the server (file-key routing). figma.fileKey needs enablePrivatePluginApi.
+      this.sendFileIdentity();
+
       // Set up plugin lifecycle handlers
       this.setupLifecycleHandlers();
 
@@ -110,6 +114,22 @@ class FigmaPlugin {
       logger.error('Plugin initialization failed:', error);
       figma.notify('Plugin initialization failed', { error: true });
     }
+  }
+
+  private sendFileIdentity(): void {
+    let fileKey: string | null = null;
+    let fileName: string | null = null;
+    try {
+      fileKey = (figma as any).fileKey ?? null;
+    } catch {
+      // fileKey unavailable (plugin not running with private plugin API)
+    }
+    try {
+      fileName = figma.root?.name ?? null;
+    } catch {
+      // root not ready
+    }
+    figma.ui.postMessage({ type: 'FILE_IDENTITY', fileKey, fileName });
   }
 
   private setupLifecycleHandlers(): void {

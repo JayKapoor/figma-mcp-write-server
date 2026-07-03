@@ -4,6 +4,7 @@ import * as path from "path";
 import { readFileSync, readdirSync } from "fs";
 import { fileURLToPath } from "url";
 import { logger } from "../utils/logger.js"
+import { fileKeyContext } from "../utils/file-context.js"
 
 // Get version from package.json
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -39,7 +40,7 @@ export class HandlerRegistry {
             const { class: HandlerClass, name } = handlerInfo as any;
             if (HandlerClass) {
               let handler;
-              if (name === 'PluginStatusHandler') {
+              if (name === 'PluginStatusHandler' || name === 'FilesHandler') {
                 handler = new HandlerClass(sendToPluginFn, this.wsServer);
               } else if (name === 'FontsHandler' && this.fontServiceAccessor) {
                 handler = new HandlerClass(sendToPluginFn, this.fontServiceAccessor);
@@ -94,7 +95,9 @@ export class HandlerRegistry {
       () => import('./styles-handler.js').then(m => ({ class: m.StyleHandler, name: 'StyleHandler' })),
       () => import('./texts-handler.js').then(m => ({ class: m.TextHandler, name: 'TextHandler' })),
       () => import('./variables-handler.js').then(m => ({ class: m.VariablesHandler, name: 'VariablesHandler' })),
-      () => import('./vectors-handler.js').then(m => ({ class: m.VectorsHandler, name: 'VectorsHandler' }))
+      () => import('./vectors-handler.js').then(m => ({ class: m.VectorsHandler, name: 'VectorsHandler' })),
+      () => import('./files-handler.js').then(m => ({ class: m.FilesHandler, name: 'FilesHandler' })),
+      () => import('./execute-handler.js').then(m => ({ class: m.ExecuteHandler, name: 'ExecuteHandler' }))
     ];
 
     return handlerImports;
@@ -111,12 +114,39 @@ export class HandlerRegistry {
   }
 
   getTools(): Tool[] {
-    return this.allTools;
+    // Every tool accepts an optional fileKey so calls can target a specific
+    // connected Figma file instead of whichever file connected last.
+    return this.allTools.map(tool => {
+      const schema: any = tool.inputSchema;
+      if (!schema || schema.type !== 'object' || schema.properties?.fileKey) {
+        return tool;
+      }
+      return {
+        ...tool,
+        inputSchema: {
+          ...schema,
+          properties: {
+            ...schema.properties,
+            fileKey: {
+              type: 'string',
+              description: 'Target Figma file key. Required when multiple files are connected; use figma_files to list them. Defaults to the only connected file.'
+            }
+          }
+        }
+      } as Tool;
+    });
   }
 
   async handleToolCall(name: string, args: any): Promise<any> {
-    // Check plugin connection for all tools except figma_plugin_status
-    if (name !== 'figma_plugin_status') {
+    // Pop the routing param before schema validation; it applies to every tool
+    let targetFileKey: string | undefined;
+    if (args && typeof args === 'object' && 'fileKey' in args) {
+      targetFileKey = typeof args.fileKey === 'string' && args.fileKey.trim() !== '' ? args.fileKey : undefined;
+      delete args.fileKey;
+    }
+
+    // Check plugin connection for all tools except status/discovery tools
+    if (name !== 'figma_plugin_status' && name !== 'figma_files') {
       if (!this.wsServer) {
         throw new Error(`MCP server not properly initialized. Please restart the MCP server.`);
       }
@@ -146,6 +176,7 @@ export class HandlerRegistry {
       throw new Error(`Tool '${name}' not found. Available tools: ${availableTools}`);
     }
 
-    return await handler.handle(name, args);
+    // Run inside the file-key context so sendToPlugin routes to the right file
+    return await fileKeyContext.run(targetFileKey, () => handler.handle(name, args));
   }
 }

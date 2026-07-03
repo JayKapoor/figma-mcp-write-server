@@ -61,6 +61,13 @@ export interface QueuedRequest {
   timestamp: number;
   priority: 'low' | 'normal' | 'high';
   retries: number;
+  targetFileKey?: string;
+}
+
+export interface ConnectedFile {
+  fileKey: string | null;
+  fileName: string | null;
+  connectedAt: Date;
 }
 
 export interface RequestBatch {
