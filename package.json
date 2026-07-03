@@ -52,6 +52,7 @@
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
     "esbuild": "^0.25.5",
+    "playwright": "^1.61.1",
     "shx": "^0.3.4",
     "tsx": "^4.7.0",
     "typescript": "^5.4.0",

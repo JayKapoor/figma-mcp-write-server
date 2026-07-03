@@ -1,0 +1,15 @@
+{
+  "_comment": "RULE 3: webfont family -> nearest Figma-installed family. 'factor' is an optional metric size nudge (rendered size = captured px * factor). Style is derived from the captured CSS weight by the builder.",
+  "Helvetica Neue": { "family": "Archivo", "factor": 1.0 },
+  "Helvetica": { "family": "Archivo", "factor": 1.0 },
+  "Neue Haas Grotesk": { "family": "Archivo", "factor": 1.0 },
+  "SF Pro Display": { "family": "Inter", "factor": 1.0 },
+  "SF Pro Text": { "family": "Inter", "factor": 1.0 },
+  "-apple-system": { "family": "Inter", "factor": 1.0 },
+  "system-ui": { "family": "Inter", "factor": 1.0 },
+  "Arial": { "family": "Inter", "factor": 0.98 },
+  "Berkeley Mono": { "family": "JetBrains Mono", "factor": 1.0 },
+  "Martian Mono": { "family": "Martian Mono", "factor": 1.0 },
+  "Inter Variable": { "family": "Inter", "factor": 1.0 },
+  "Instrument Sans": { "family": "Instrument Sans", "factor": 1.0 }
+}
