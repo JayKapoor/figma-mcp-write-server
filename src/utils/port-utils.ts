@@ -6,15 +6,16 @@ import { logger } from "../utils/logger.js"
 const execAsync = promisify(exec);
 
 export async function checkPortAvailable(port: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    const testServer = createServer();
-    
-    testServer.listen(port, () => {
-      testServer.close(() => resolve(true));
-    });
-    
-    testServer.on('error', () => resolve(false));
-  });
+  return Promise.race([
+    new Promise<boolean>((resolve) => {
+      const testServer = createServer();
+      testServer.listen(port, () => {
+        testServer.close(() => resolve(true));
+      });
+      testServer.on('error', () => resolve(false));
+    }),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 5000))
+  ]);
 }
 
 export async function findZombieProcesses(port: number): Promise<string[]> {

@@ -14,6 +14,7 @@ export interface FontDatabaseConfig {
 
 export interface ServerConfig {
   port: number;
+  mcpPort: number;
   host: string;
   fontDatabase: FontDatabaseConfig;
   logging: {
@@ -25,6 +26,7 @@ export interface ServerConfig {
 
 const DEFAULT_CONFIG: ServerConfig = {
   port: 8765,
+  mcpPort: 3100,
   host: 'localhost',
   fontDatabase: {
     enabled: true,
@@ -164,6 +166,7 @@ function mergeConfig(base: ServerConfig, override: Partial<ServerConfig>): Serve
   
   // Handle each property explicitly to avoid TypeScript issues
   if (override.port !== undefined) result.port = override.port;
+  if (override.mcpPort !== undefined) result.mcpPort = override.mcpPort;
   if (override.host !== undefined) result.host = override.host;
   if (override.fontDatabase !== undefined) {
     result.fontDatabase = { ...result.fontDatabase, ...override.fontDatabase };
@@ -191,10 +194,14 @@ function normalizeConfig(config: ServerConfig): ServerConfig {
     config.logging.logPath = join(paths.cacheDir, config.logging.logPath);
   }
   
-  // Validate port range
+  // Validate port ranges
   if (config.port < 1 || config.port > 65535) {
     logger.warn(`Invalid port ${config.port}, using default 8765`);
     config.port = 8765;
+  }
+  if (config.mcpPort < 1 || config.mcpPort > 65535) {
+    logger.warn(`Invalid mcpPort ${config.mcpPort}, using default 3100`);
+    config.mcpPort = 3100;
   }
   
   // Validate max age hours

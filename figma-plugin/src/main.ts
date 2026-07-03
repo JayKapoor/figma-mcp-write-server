@@ -100,7 +100,7 @@ class FigmaPlugin {
   async start(): Promise<void> {
     try {
       // Show UI for WebSocket connection and monitoring
-      figma.showUI(__html__, { width: 320, height: 300 });
+      figma.showUI(__html__, { width: 224, height: 210 });
 
       // Set up plugin lifecycle handlers
       this.setupLifecycleHandlers();

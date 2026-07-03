@@ -67,6 +67,9 @@ async function parseArgs(): Promise<Partial<ServerConfig>> {
       case '--port':
         if (value) config.port = parseInt(value, 10);
         break;
+      case '--mcp-port':
+        if (value) config.mcpPort = parseInt(value, 10);
+        break;
       case '--check-port':
         if (value) {
           await checkPortStatus(parseInt(value, 10));
@@ -81,45 +84,35 @@ Figma MCP Write Server - Model Context Protocol server with Figma write access
 Usage: figma-mcp-write-server [options]
 
 Options:
-  --port <number>              WebSocket server port (default: 8765)
+  --port <number>              WebSocket server port for Figma plugin (default: 8765)
+  --mcp-port <number>          HTTP port for Claude MCP connections (default: 3100)
   --check-port <number>        Check if a port is available and show what's using it
   --help, -h                   Show this help message
 
 Description:
-  MCP server with built-in WebSocket server for Figma plugin communication.
-  Includes automatic port management with zombie process detection and cleanup.
+  Always-on MCP server with HTTP transport and WebSocket for Figma plugin.
+  Runs as a daemon — Claude Code connects over HTTP, Figma plugin over WebSocket.
 
 Architecture:
-  Claude Desktop ↔ MCP Server (WebSocket Server) ↔ Figma MCP Write Bridge Plugin (WebSocket Client)
+  Claude Code ↔ HTTP (port 3100) ↔ MCP Server ↔ WebSocket (port 8765) ↔ Figma Plugin
 
 Setup:
-  1. Start this MCP server: node dist/index.js
+  1. Start this server (or install as launchd daemon)
   2. Open Figma Desktop and import the plugin from figma-plugin/manifest.json
-  3. Run the "Figma MCP Write Bridge" plugin - it will auto-connect to the MCP server
-  4. Use MCP tools from Claude Desktop
+  3. Run the "Figma MCP Write Bridge" plugin - it will auto-connect
+  4. Configure Claude Code: claude mcp add figma-write -s user --transport http http://localhost:3100/mcp
 
-Port Management:
-  - Automatically detects if port 8765 is in use
-  - Identifies and kills zombie processes when possible
-  - Falls back to alternative ports (8766, 8767, etc.) if needed
-  - Provides clear error messages for port conflicts
-
-Available MCP Tools:
-  25 comprehensive tools for Figma automation including:
-  - Node management (create, update, delete, duplicate)
-  - Style operations (fills, strokes, effects, text styles)
-  - Layout and positioning (alignments, transforms)
-  - Export functionality (images, assets)
-  - Variable and component management
-  - Selection and navigation tools
+Endpoints:
+  POST/GET/DELETE /mcp        MCP protocol (StreamableHTTP)
+  GET /health                 Health check (JSON)
 
 Examples:
   # Start server with default settings
   node dist/index.js
-  
-  # Start server with custom WebSocket port
-  node dist/index.js --port 9000
-  
+
+  # Start with custom ports
+  node dist/index.js --port 9000 --mcp-port 3200
+
   # Check what's using port 8765
   node dist/index.js --check-port 8765
 `);

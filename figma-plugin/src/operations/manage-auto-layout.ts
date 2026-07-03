@@ -2,6 +2,22 @@ import { OperationResult } from '../types.js';
 import { BaseOperation } from './base-operation.js';
 import { findNodeById, validateNodeType } from '../utils/node-utils.js';
 
+// Maps user-friendly alignment values to Figma's primaryAxisAlignItems enum
+const PRIMARY_AXIS_MAP: Record<string, string> = {
+  'LEFT': 'MIN', 'TOP': 'MIN', 'MIN': 'MIN',
+  'CENTER': 'CENTER', 'MIDDLE': 'CENTER',
+  'RIGHT': 'MAX', 'BOTTOM': 'MAX', 'MAX': 'MAX',
+  'AUTO': 'SPACE_BETWEEN', 'SPACE_BETWEEN': 'SPACE_BETWEEN',
+};
+
+// Maps user-friendly alignment values to Figma's counterAxisAlignItems enum
+const COUNTER_AXIS_MAP: Record<string, string> = {
+  'LEFT': 'MIN', 'TOP': 'MIN', 'MIN': 'MIN',
+  'CENTER': 'CENTER', 'MIDDLE': 'CENTER',
+  'RIGHT': 'MAX', 'BOTTOM': 'MAX', 'MAX': 'MAX',
+  'BASELINE': 'BASELINE',
+};
+
 /**
  * Handle MANAGE_AUTO_LAYOUT operation with 7 operations: get, set_horizontal, set_vertical, set_grid, set_freeform, set_child, reorder_children
  */
@@ -152,14 +168,16 @@ async function setHorizontalLayout(frame: FrameNode, params: any): Promise<any> 
   
   setPaddingProperties(frame, params);
   
-  // Alignment properties
+  // Alignment properties — translate friendly values to Figma enums
   if (params.horizontalAlignment !== undefined) {
-    frame.primaryAxisAlignItems = params.horizontalAlignment.toUpperCase() as any;
+    const mapped = PRIMARY_AXIS_MAP[params.horizontalAlignment.toUpperCase()];
+    if (mapped) frame.primaryAxisAlignItems = mapped as any;
   }
   if (params.verticalAlignment !== undefined) {
-    frame.counterAxisAlignItems = params.verticalAlignment.toUpperCase() as any;
+    const mapped = COUNTER_AXIS_MAP[params.verticalAlignment.toUpperCase()];
+    if (mapped) frame.counterAxisAlignItems = mapped as any;
   }
-  
+
   // Sizing mode properties
   if (params.fixedWidth !== undefined) {
     frame.primaryAxisSizingMode = params.fixedWidth ? 'FIXED' : 'AUTO';
@@ -167,7 +185,7 @@ async function setHorizontalLayout(frame: FrameNode, params: any): Promise<any> 
   if (params.fixedHeight !== undefined) {
     frame.counterAxisSizingMode = params.fixedHeight ? 'FIXED' : 'AUTO';
   }
-  
+
   // Wrapping properties
   if (params.wrapLayout !== undefined) {
     frame.layoutWrap = params.wrapLayout ? 'WRAP' : 'NO_WRAP';
@@ -175,9 +193,9 @@ async function setHorizontalLayout(frame: FrameNode, params: any): Promise<any> 
   if (params.verticalSpacing !== undefined && frame.layoutWrap === 'WRAP') {
     frame.counterAxisSpacing = params.verticalSpacing === 'AUTO' ? 'AUTO' as any : params.verticalSpacing;
   }
-  
+
   setAdvancedProperties(frame, params);
-  
+
   return {
     operation: 'set_horizontal',
     nodeId: frame.id,
@@ -198,12 +216,14 @@ async function setVerticalLayout(frame: FrameNode, params: any): Promise<any> {
   
   setPaddingProperties(frame, params);
   
-  // Alignment properties
+  // Alignment properties — translate friendly values to Figma enums
   if (params.verticalAlignment !== undefined) {
-    frame.primaryAxisAlignItems = params.verticalAlignment.toUpperCase() as any;
+    const mapped = PRIMARY_AXIS_MAP[params.verticalAlignment.toUpperCase()];
+    if (mapped) frame.primaryAxisAlignItems = mapped as any;
   }
   if (params.horizontalAlignment !== undefined) {
-    frame.counterAxisAlignItems = params.horizontalAlignment.toUpperCase() as any;
+    const mapped = COUNTER_AXIS_MAP[params.horizontalAlignment.toUpperCase()];
+    if (mapped) frame.counterAxisAlignItems = mapped as any;
   }
   
   // Sizing mode properties

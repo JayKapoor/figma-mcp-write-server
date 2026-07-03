@@ -16,10 +16,10 @@ export class ResourceRegistry {
   constructor(sendToPluginFn: (request: any) => Promise<any>) {
     // Use resolve to ensure absolute path and handle Windows paths correctly
     this.resourcesPath = resolve(join(__dirname, '..', '..', 'mcp-resources'));
-    console.log(`[ResourceRegistry] Initialized with path: ${this.resourcesPath}`);
-    console.log(`[ResourceRegistry] __dirname: ${__dirname}`);
-    console.log(`[ResourceRegistry] Platform: ${process.platform}`);
-    console.log(`[ResourceRegistry] import.meta.url: ${import.meta.url}`);
+    console.error(`[ResourceRegistry] Initialized with path: ${this.resourcesPath}`);
+    console.error(`[ResourceRegistry] __dirname: ${__dirname}`);
+    console.error(`[ResourceRegistry] Platform: ${process.platform}`);
+    console.error(`[ResourceRegistry] import.meta.url: ${import.meta.url}`);
   }
 
   /**
@@ -27,12 +27,12 @@ export class ResourceRegistry {
    */
   async getResources(): Promise<Resource[]> {
     try {
-      console.log(`[ResourceRegistry] Scanning directory: ${this.resourcesPath}`);
+      console.error(`[ResourceRegistry] Scanning directory: ${this.resourcesPath}`);
       
       // Check if directory exists and is accessible
       try {
         await access(this.resourcesPath);
-        console.log(`[ResourceRegistry] Directory is accessible`);
+        console.error(`[ResourceRegistry] Directory is accessible`);
       } catch (accessError) {
         console.error(`[ResourceRegistry] Directory not accessible:`, accessError);
         return [];
@@ -40,7 +40,7 @@ export class ResourceRegistry {
       
       const resources: Resource[] = [];
       const items = await readdir(this.resourcesPath);
-      console.log(`[ResourceRegistry] Found ${items.length} items:`, items);
+      console.error(`[ResourceRegistry] Found ${items.length} items:`, items);
 
       for (const item of items) {
         if (item.endsWith('.md')) {
@@ -52,12 +52,12 @@ export class ResourceRegistry {
             mimeType: 'text/markdown',
             description: `${title || item.replace('.md', '')} - Figma MCP usage guide`
           };
-          console.log(`[ResourceRegistry] Adding resource:`, resource);
+          console.error(`[ResourceRegistry] Adding resource:`, resource);
           resources.push(resource);
         }
       }
 
-      console.log(`[ResourceRegistry] Returning ${resources.length} resources`);
+      console.error(`[ResourceRegistry] Returning ${resources.length} resources`);
       return resources;
     } catch (error) {
       console.error(`[ResourceRegistry] Error scanning resources:`, error);
@@ -69,7 +69,7 @@ export class ResourceRegistry {
    * Get content for a specific resource URI
    */
   async getResourceContent(uri: string): Promise<ResourceContents> {
-    console.log(`[ResourceRegistry] Getting content for URI: ${uri}`);
+    console.error(`[ResourceRegistry] Getting content for URI: ${uri}`);
     
     if (!uri.startsWith('figma://')) {
       console.error(`[ResourceRegistry] Invalid URI scheme: ${uri}`);
@@ -78,15 +78,15 @@ export class ResourceRegistry {
 
     const filename = uri.replace('figma://', '');
     const fullPath = resolve(join(this.resourcesPath, filename));
-    console.log(`[ResourceRegistry] Resolved file path: ${fullPath}`);
+    console.error(`[ResourceRegistry] Resolved file path: ${fullPath}`);
     
     try {
       // Check if file exists and is accessible
       await access(fullPath);
-      console.log(`[ResourceRegistry] File is accessible: ${fullPath}`);
+      console.error(`[ResourceRegistry] File is accessible: ${fullPath}`);
       
       const content = await readFile(fullPath, 'utf-8');
-      console.log(`[ResourceRegistry] Successfully read content (${content.length} chars)`);
+      console.error(`[ResourceRegistry] Successfully read content (${content.length} chars)`);
       
       const result = {
         uri: uri,
@@ -98,7 +98,7 @@ export class ResourceRegistry {
           }
         ]
       };
-      console.log(`[ResourceRegistry] Returning resource content for: ${uri}`);
+      console.error(`[ResourceRegistry] Returning resource content for: ${uri}`);
       return result;
     } catch (error) {
       console.error(`[ResourceRegistry] Error reading file ${fullPath}:`, error);
