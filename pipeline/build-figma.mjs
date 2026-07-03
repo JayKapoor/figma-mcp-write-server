@@ -51,15 +51,17 @@ async function mfFont(fam, fw, FONT_MAP, cache) {
 }
 
 // RULE 2: paint order = stacking order, not DOM order.
-// Big rects to the back, then images/svgs, text on top; explicit z breaks ties.
+// Big rects to the back, then full-bleed background images (hero video
+// posters etc. — often DOM-late but visually behind everything), then
+// images/svgs, text on top; explicit z breaks ties.
 function mfOrder(leaves) {
-  const rank = l => l.t === 'text' ? 3 : (l.t === 'img' || l.t === 'svg' ? 2 : 1);
+  const area = l => l.w * l.h;
+  const rank = l => l.t === 'text' ? 4
+    : (l.t === 'img' || l.t === 'svg') ? (area(l) > 400000 ? 2 : 3)
+      : 1;
   return leaves.map((l, i) => ({ l, i })).sort((a, b) => {
     if (rank(a.l) !== rank(b.l)) return rank(a.l) - rank(b.l);
-    if (rank(a.l) === 1) {
-      const area = x => x.l.w * x.l.h;
-      if (area(a) !== area(b)) return area(b) - area(a);
-    }
+    if (rank(a.l) <= 2 && area(a.l) !== area(b.l)) return area(b.l) - area(a.l);
     const za = a.l.z || 0, zb = b.l.z || 0;
     if (za !== zb) return za - zb;
     return a.i - b.i;

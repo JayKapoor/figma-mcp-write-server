@@ -1,0 +1,11 @@
+{
+  "name": "morph-pipeline",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Morph capture + builders: URL -> IR -> Figma / Framer / code. Own deps so the Figma engine never pulls Chromium.",
+  "type": "module",
+  "dependencies": {
+    "framer-api": "^0.1.18",
+    "playwright": "^1.49.0"
+  }
+}
