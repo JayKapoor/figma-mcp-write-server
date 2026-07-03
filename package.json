@@ -1,5 +1,5 @@
 {
-  "name": "figma-mcp-write-server",
+  "name": "morph",
   "version": "0.39.0",
   "description": "MCP server for Figma with write access via Plugin API",
   "main": "dist/index.js",

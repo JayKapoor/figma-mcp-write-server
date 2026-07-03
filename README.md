@@ -1,6 +1,8 @@
-# Figma MCP Write Server
+# Morph
 
-A Model Context Protocol (MCP) server that provides write access to Figma through the Plugin API, enabling AI agents to create, modify, and manage Figma designs programmatically.
+Agentic design pipeline. Today: a Model Context Protocol (MCP) server that provides write access to Figma through the Plugin API with file-key routing, enabling AI agents to create, modify, and manage Figma designs programmatically across multiple open files. Roadmap: URL capture to a design IR, with builders for Figma, Framer, and code.
+
+Fork of [oO/figma-mcp-write-server](https://github.com/oO/figma-mcp-write-server).
 
 Designed with ❤️ by a human. Coded with ✨ by AI agents (Claude and Gemini)
 

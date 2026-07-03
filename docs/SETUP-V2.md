@@ -1,4 +1,4 @@
-# figma-write v2 — Machine Setup
+# Morph (figma-write v2) — Machine Setup
 
 One-time setup per machine (desktop or laptop). v2 adds file-key routing: with
 several Figma files open, every tool call can target an exact file, and the
@@ -7,8 +7,8 @@ server refuses to guess when the target is ambiguous.
 ## 1. Clone and build
 
 ```bash
-git clone https://github.com/JayKapoor/figma-mcp-write-server.git
-cd figma-mcp-write-server
+git clone https://github.com/JayKapoor/morph.git
+cd morph
 git checkout v2-filekey
 npm install
 npm run build
@@ -73,7 +73,7 @@ claude mcp add figma-write -s user --transport http http://localhost:3100/mcp
 ## Upgrading a machine
 
 ```bash
-cd figma-mcp-write-server
+cd morph
 git pull
 npm install && npm run build
 launchctl unload ~/Library/LaunchAgents/com.jaykapoor.figma-mcp-write-server.plist
