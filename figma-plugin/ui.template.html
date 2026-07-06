@@ -2,210 +2,334 @@
 <html>
     <head>
         <meta charset="utf-8" />
-        <title>Figma MCP Plugin</title>
+        <title>Morph</title>
         <style>
+            :root {
+                --bg: var(--figma-color-bg, #ffffff);
+                --bg-2: var(--figma-color-bg-secondary, #f5f5f5);
+                --bg-3: var(--figma-color-bg-tertiary, #e6e6e6);
+                --text: var(--figma-color-text, #1e1e1e);
+                --text-2: var(--figma-color-text-secondary, rgba(0, 0, 0, 0.5));
+                --text-3: var(--figma-color-text-tertiary, rgba(0, 0, 0, 0.35));
+                --border: var(--figma-color-border, #e6e6e6);
+                --success: var(--figma-color-icon-success, #14ae5c);
+                --danger: var(--figma-color-icon-danger, #f24822);
+                --warning: var(--figma-color-icon-warning, #e8a33d);
+                --brand: var(--figma-color-icon-brand, #0d99ff);
+                --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+            }
+
+            * { box-sizing: border-box; }
+
             body {
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                font-family: var(--sans);
                 margin: 0;
-                padding: 12px;
-                background: #ffffff;
-                font-size: 13px;
-                line-height: 1.5;
-                color: #1d1d1d;
-                width: 320px;
-                height: 100vh;
-                box-sizing: border-box;
+                padding: 0 12px 10px;
+                background: var(--bg);
+                color: var(--text);
+                font-size: 11px;
+                line-height: 1.4;
                 display: flex;
                 flex-direction: column;
-                gap: 12px;
+                gap: 10px;
+                height: 100vh;
+                overflow: hidden;
+                -webkit-font-smoothing: antialiased;
             }
 
+            /* ── Header ──────────────────────────────── */
             .header {
-                text-align: center;
-                padding: 8px 0;
-                border-bottom: 1px solid #e2e8f0;
-            }
-
-            .title {
-                font-size: 16px;
-                font-weight: 600;
-                color: #6b7280;
-                margin: 0;
-            }
-
-            .status-section {
                 display: flex;
                 align-items: center;
-                justify-content: space-between;
-                background: #f8fafc;
-                padding: 12px;
-                border-radius: 8px;
-                border: 1px solid #e2e8f0;
-            }
-
-            .connection-info {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                flex: 1;
-            }
-
-            .status-dot {
-                width: 14px;
-                height: 14px;
-                border-radius: 50%;
-                background: #ef4444;
+                gap: 7px;
+                padding: 11px 0 9px;
+                border-bottom: 1px solid var(--border);
                 flex-shrink: 0;
             }
 
-            .status-dot.connected {
-                background: #10b981;
+            .status-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: var(--danger);
+                flex-shrink: 0;
+                transition: background 0.2s;
+            }
+            .status-dot.connected { background: var(--success); }
+            .status-dot.connecting {
+                background: var(--warning);
+                animation: blink 1s ease-in-out infinite;
+            }
+            .status-dot.pulse { animation: pulse 600ms ease-out; }
+
+            @keyframes blink { 50% { opacity: 0.3; } }
+            @keyframes pulse {
+                0% { box-shadow: 0 0 0 0 var(--success); }
+                100% { box-shadow: 0 0 0 6px transparent; }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .status-dot.connecting, .status-dot.pulse { animation: none; }
             }
 
-            .status-text {
-                color: #374151;
-                font-weight: 500;
+            .wordmark {
                 font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 0.08em;
+            }
+
+            .status-label {
+                font-size: 10px;
+                color: var(--text-3);
                 flex: 1;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
 
-            .heartbeat {
-                font-size: 16px;
-                cursor: default;
-                user-select: none;
-                opacity: 0.3;
+            .version {
+                font-family: var(--mono);
+                font-size: 9px;
+                color: var(--text-3);
             }
 
-            .heartbeat.active {
-                opacity: 1;
+            /* ── Working-in card ─────────────────────── */
+            .context {
+                background: var(--bg-2);
+                border-radius: 6px;
+                padding: 9px 10px 8px;
+                flex-shrink: 0;
             }
 
-            .heartbeat.broken {
-                opacity: 0.5;
-            }
-
-            .heartbeat.animate {
-                animation: heartbeat-pulse 600ms ease-out;
-            }
-
-            @keyframes heartbeat-pulse {
-                0% { transform: scale(1); }
-                20% { transform: scale(1.25); }
-                40% { transform: scale(1); }
-                60% { transform: scale(1.15); }
-                100% { transform: scale(1); }
-            }
-
-            .stats-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr 1fr;
-                gap: 16px;
-                background: #f1f5f9;
-                padding: 16px;
-                border-radius: 8px;
-            }
-
-            .stat-item {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 4px;
-            }
-
-            .stat-value {
-                font-size: 18px;
+            .eyebrow {
+                font-size: 8.5px;
                 font-weight: 600;
-                color: #334155;
-            }
-
-            .stat-label {
-                font-size: 11px;
-                color: #64748b;
+                letter-spacing: 0.1em;
                 text-transform: uppercase;
-                letter-spacing: 0.5px;
+                color: var(--text-3);
+                margin-bottom: 4px;
             }
 
-            .controls {
+            .file-name {
+                font-size: 12px;
+                font-weight: 600;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .page-line {
+                display: flex;
+                align-items: baseline;
+                gap: 5px;
+                margin-top: 2px;
+                font-family: var(--mono);
+                font-size: 10.5px;
+                white-space: nowrap;
+                overflow: hidden;
+            }
+            .page-caret { color: var(--text-3); flex-shrink: 0; }
+            .page-line.live .page-caret { color: var(--success); }
+            .page-name {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                color: var(--text-2);
+            }
+
+            .context-meta {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                padding: 8px 0;
+                gap: 8px;
+                margin-top: 7px;
+                padding-top: 6px;
+                border-top: 1px solid var(--border);
+                font-family: var(--mono);
+                font-size: 9px;
+                color: var(--text-3);
             }
 
-            .disconnect-btn {
-                padding: 8px 16px;
-                border: none;
-                border-radius: 6px;
-                background: #6b7280;
-                color: white;
-                font-size: 12px;
-                font-weight: 500;
+            .file-key {
                 cursor: pointer;
-                transition: background 0.2s;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .file-key:hover { color: var(--text-2); }
+
+            .endpoint { flex-shrink: 0; }
+
+            /* ── Stats ───────────────────────────────── */
+            .stats {
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                flex-shrink: 0;
             }
 
-            .disconnect-btn:hover {
-                background: #4b5563;
+            .stat { text-align: center; }
+            .stat + .stat { border-left: 1px solid var(--border); }
+
+            .stat-value {
+                font-family: var(--mono);
+                font-size: 15px;
+                font-weight: 600;
+                font-variant-numeric: tabular-nums;
+            }
+            .stat-value.has-errors { color: var(--danger); }
+
+            .stat-label {
+                font-size: 8.5px;
+                font-weight: 600;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                color: var(--text-3);
+                margin-top: 1px;
             }
 
-            .connect-btn {
-                background: #3b82f6;
+            /* ── Activity ────────────────────────────── */
+            .activity {
+                display: flex;
+                flex-direction: column;
+                flex: 1;
+                min-height: 0;
             }
 
-            .connect-btn:hover {
-                background: #2563eb;
+            .activity-list {
+                flex: 1;
+                overflow-y: auto;
+                margin-top: 2px;
+                scrollbar-width: thin;
             }
 
-            .disconnect-btn:disabled {
-                opacity: 0.6;
-                cursor: not-allowed;
+            .activity-empty {
+                color: var(--text-3);
+                font-size: 10px;
+                padding: 10px 2px;
+            }
+
+            .activity-row {
+                display: flex;
+                align-items: baseline;
+                gap: 6px;
+                padding: 3px 2px;
+                font-family: var(--mono);
+                font-size: 9.5px;
+                border-bottom: 1px solid var(--border);
+                white-space: nowrap;
+            }
+            .activity-row:last-child { border-bottom: none; }
+
+            .op-mark { flex-shrink: 0; color: var(--success); }
+            .activity-row.failed .op-mark { color: var(--danger); }
+
+            .op-name {
+                color: var(--text-2);
+                overflow: hidden;
+                text-overflow: ellipsis;
+                flex-shrink: 1;
+            }
+            .activity-row.failed .op-name { color: var(--danger); }
+
+            .op-page {
+                margin-left: auto;
+                color: var(--text-3);
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 45%;
+                flex-shrink: 0;
+            }
+
+            /* ── Footer ──────────────────────────────── */
+            .footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding-top: 9px;
+                border-top: 1px solid var(--border);
+                flex-shrink: 0;
+            }
+
+            .toggle-btn {
+                font-family: var(--sans);
+                font-size: 10px;
+                font-weight: 500;
+                padding: 5px 12px;
+                border-radius: 5px;
+                border: 1px solid var(--border);
+                background: transparent;
+                color: var(--text);
+                cursor: pointer;
+            }
+            .toggle-btn:hover { background: var(--bg-2); }
+            .toggle-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+            .toggle-btn.connect {
+                background: var(--figma-color-bg-brand, #0d99ff);
+                border-color: transparent;
+                color: var(--figma-color-text-onbrand, #ffffff);
+            }
+            .toggle-btn:focus-visible,
+            .file-key:focus-visible,
+            .debug-checkbox:focus-visible {
+                outline: 1px solid var(--brand);
+                outline-offset: 1px;
             }
 
             .debug-control {
                 display: flex;
                 align-items: center;
                 gap: 4px;
-                font-size: 12px;
-                color: #6b7280;
+                font-size: 10px;
+                color: var(--text-3);
             }
 
-            .debug-checkbox {
-                width: 14px;
-                height: 14px;
-                cursor: pointer;
-            }
+            .debug-checkbox { width: 12px; height: 12px; cursor: pointer; margin: 0; }
         </style>
     </head>
     <body>
         <div class="header">
-            <div class="title">MCP WebSocket Client v{{VERSION}}</div>
+            <div class="status-dot" id="statusDot"></div>
+            <div class="wordmark">Morph</div>
+            <div class="status-label" id="connectionStatus">Connecting…</div>
+            <div class="version">v{{VERSION}}</div>
         </div>
 
-        <div class="status-section">
-            <div class="connection-info">
-                <div class="status-dot" id="statusDot"></div>
-                <div class="status-text" id="connectionStatus">Connecting to localhost:{{PORT}}...</div>
+        <div class="context">
+            <div class="eyebrow">Working in</div>
+            <div class="file-name" id="fileName">Reading file…</div>
+            <div class="page-line" id="pageLine">
+                <span class="page-caret">▸</span>
+                <span class="page-name" id="pageName">—</span>
             </div>
-            <div class="heartbeat" id="heartbeat" title="Connection heartbeat">💔</div>
+            <div class="context-meta">
+                <span class="file-key" id="fileKey" tabindex="0" title="Click to copy file key">key —</span>
+                <span class="endpoint" id="endpoint">ws://localhost:{{PORT}}</span>
+            </div>
         </div>
 
-        <div class="stats-grid">
-            <div class="stat-item">
+        <div class="stats">
+            <div class="stat">
                 <div class="stat-value" id="commandCount">0</div>
                 <div class="stat-label">Commands</div>
             </div>
-            <div class="stat-item">
+            <div class="stat">
                 <div class="stat-value" id="errorCount">0</div>
                 <div class="stat-label">Errors</div>
             </div>
-            <div class="stat-item">
+            <div class="stat">
                 <div class="stat-value" id="uptime">00:00</div>
                 <div class="stat-label">Uptime</div>
             </div>
         </div>
 
-        <div class="controls">
-            <button class="disconnect-btn" id="connectionToggle">Connect</button>
+        <div class="activity">
+            <div class="eyebrow">Recent activity</div>
+            <div class="activity-list" id="activityList">
+                <div class="activity-empty" id="activityEmpty">No commands yet. Operations sent to this file will appear here.</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <button class="toggle-btn connect" id="connectionToggle">Connect</button>
             <div class="debug-control">
                 <input type="checkbox" class="debug-checkbox" id="debugToggle">
                 <label for="debugToggle">Debug</label>
@@ -232,22 +356,32 @@
             let debugMode = false;
             let startTime = Date.now();
             let uptimeTimer = null;
-            
+
             // Statistics
             let stats = {
                 commands: 0,
                 errors: 0
             };
 
+            // Activity feed (newest first, capped)
+            const MAX_ACTIVITY = 30;
+            let activity = [];
+
             // DOM elements
             const statusDot = document.getElementById("statusDot");
             const connectionStatus = document.getElementById("connectionStatus");
             const connectionToggle = document.getElementById("connectionToggle");
             const debugToggle = document.getElementById("debugToggle");
-            const heartbeat = document.getElementById("heartbeat");
             const commandCount = document.getElementById("commandCount");
             const errorCount = document.getElementById("errorCount");
             const uptime = document.getElementById("uptime");
+            const fileNameEl = document.getElementById("fileName");
+            const pageNameEl = document.getElementById("pageName");
+            const pageLine = document.getElementById("pageLine");
+            const fileKeyEl = document.getElementById("fileKey");
+            const endpointEl = document.getElementById("endpoint");
+            const activityList = document.getElementById("activityList");
+            const activityEmpty = document.getElementById("activityEmpty");
 
             function log(message, level = "info") {
                 if (debugMode) {
@@ -257,19 +391,93 @@
                 }
             }
 
-            function logCommand(operation, success = null) {
+            function logCommand(operation, success = null, page = null) {
                 stats.commands++;
                 if (success === false) stats.errors++;
                 updateStats();
+                addActivity(operation, success, page);
 
                 const message = success === null ? operation :
                     success ? `${operation} executed` : `${operation} failed`;
                 log(message, success === false ? "error" : "info");
             }
 
+            function addActivity(operation, success, page) {
+                activity.unshift({
+                    op: String(operation || "unknown").toLowerCase(),
+                    ok: success !== false,
+                    page: page || null,
+                    time: new Date()
+                });
+                if (activity.length > MAX_ACTIVITY) activity.pop();
+                renderActivity();
+            }
+
+            function renderActivity() {
+                activityEmpty.style.display = activity.length ? "none" : "block";
+                // Rebuild rows (small list, cheap)
+                const rows = activity.map(entry => {
+                    const t = entry.time;
+                    const hh = String(t.getHours()).padStart(2, "0");
+                    const mm = String(t.getMinutes()).padStart(2, "0");
+                    const ss = String(t.getSeconds()).padStart(2, "0");
+                    const row = document.createElement("div");
+                    row.className = "activity-row" + (entry.ok ? "" : " failed");
+                    row.title = `${entry.op} · ${hh}:${mm}:${ss}` + (entry.page ? ` · page: ${entry.page}` : "");
+                    const mark = document.createElement("span");
+                    mark.className = "op-mark";
+                    mark.textContent = entry.ok ? "✓" : "✕";
+                    const name = document.createElement("span");
+                    name.className = "op-name";
+                    name.textContent = entry.op;
+                    const pageSpan = document.createElement("span");
+                    pageSpan.className = "op-page";
+                    pageSpan.textContent = entry.page || "";
+                    row.appendChild(mark);
+                    row.appendChild(name);
+                    row.appendChild(pageSpan);
+                    return row;
+                });
+                activityList.replaceChildren(activityEmpty, ...rows);
+            }
+
             function updateStats() {
                 commandCount.textContent = stats.commands;
                 errorCount.textContent = stats.errors;
+                errorCount.className = "stat-value" + (stats.errors > 0 ? " has-errors" : "");
+            }
+
+            function truncateKey(key) {
+                if (!key) return "key —";
+                return key.length > 14 ? `key ${key.slice(0, 5)}…${key.slice(-4)}` : `key ${key}`;
+            }
+
+            function updateFileDisplay() {
+                fileNameEl.textContent = fileIdentity.fileName || "Untitled file";
+                fileNameEl.title = fileIdentity.fileName || "";
+                fileKeyEl.textContent = truncateKey(fileIdentity.fileKey);
+            }
+
+            function updatePageDisplay(pageName) {
+                pageNameEl.textContent = pageName || "—";
+                pageNameEl.title = pageName || "";
+            }
+
+            function copyFileKey() {
+                if (!fileIdentity.fileKey) return;
+                try {
+                    const ta = document.createElement("textarea");
+                    ta.value = fileIdentity.fileKey;
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(ta);
+                    const prev = fileKeyEl.textContent;
+                    fileKeyEl.textContent = "copied";
+                    setTimeout(() => { fileKeyEl.textContent = truncateKey(fileIdentity.fileKey); }, 1000);
+                } catch (e) {
+                    log("Copy failed: " + e.message);
+                }
             }
 
             function updateUptime() {
@@ -277,7 +485,7 @@
                 const seconds = Math.floor(elapsed / 1000);
                 const minutes = Math.floor(seconds / 60);
                 const hours = Math.floor(minutes / 60);
-                
+
                 if (hours > 0) {
                     uptime.textContent = `${hours.toString().padStart(2, '0')}:${(minutes % 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
                 } else {
@@ -286,6 +494,7 @@
             }
 
             function startUptimeTimer() {
+                if (uptimeTimer) return;
                 uptimeTimer = setInterval(updateUptime, 1000);
                 updateUptime();
             }
@@ -298,43 +507,37 @@
             }
 
             function animateHeartbeat() {
-                heartbeat.classList.remove('animate');
-                // Force reflow
-                heartbeat.offsetHeight;
-                heartbeat.classList.add('animate');
+                statusDot.classList.remove("pulse");
+                // Force reflow so the animation can retrigger
+                statusDot.offsetHeight;
+                statusDot.classList.add("pulse");
             }
 
             function updateConnectionStatus(connected, message, isConnecting = false) {
                 isConnected = connected;
-                
-                // Update status dot
-                statusDot.className = `status-dot ${connected ? "connected" : ""}`;
-                connectionStatus.textContent = message;
 
-                // Update heartbeat
+                statusDot.className = "status-dot" + (connected ? " connected" : isConnecting ? " connecting" : "");
+                connectionStatus.textContent = message;
+                pageLine.className = "page-line" + (connected ? " live" : "");
+
                 if (connected) {
-                    heartbeat.textContent = "❤️";
-                    heartbeat.className = "heartbeat active";
                     startUptimeTimer();
                 } else {
-                    heartbeat.textContent = "💔";
-                    heartbeat.className = "heartbeat broken";
                     stopUptimeTimer();
                 }
 
-                // Update button
                 if (isConnecting) {
-                    connectionToggle.textContent = "Connecting...";
+                    connectionToggle.textContent = "Connecting…";
                     connectionToggle.disabled = true;
-                    connectionToggle.className = "disconnect-btn";
+                    connectionToggle.className = "toggle-btn";
                 } else if (connected) {
                     connectionToggle.textContent = "Disconnect";
                     connectionToggle.disabled = false;
-                    connectionToggle.className = "disconnect-btn";
+                    connectionToggle.className = "toggle-btn";
                 } else {
                     connectionToggle.textContent = "Connect";
                     connectionToggle.disabled = false;
-                    connectionToggle.className = "disconnect-btn connect-btn";
+                    connectionToggle.className = "toggle-btn connect";
                 }
             }
 
@@ -345,8 +548,9 @@
 
                 connectionAttempts++;
                 currentPort = BASE_PORT + portOffset;
+                endpointEl.textContent = `ws://localhost:${currentPort}`;
                 // Silent connection attempt
-                updateConnectionStatus(false, `Connecting to :${currentPort}...`, true);
+                updateConnectionStatus(false, `Connecting to :${currentPort}…`, true);
 
                 try {
                     socketEverConnected = false;
@@ -355,7 +559,8 @@
                     ws.onopen = () => {
                         // Silent connection success
                         socketEverConnected = true;
-                        updateConnectionStatus(true, `Connected to localhost:${currentPort}`);
+                        startTime = Date.now(); // uptime = this connection's age
+                        updateConnectionStatus(true, "Connected");
                         connectionAttempts = 0;
                         clearReconnectTimer();
                         ws.send(JSON.stringify({
@@ -469,9 +674,9 @@
                     }
                     animateHeartbeat();
                     if (ws && isConnected) {
-                        ws.send(JSON.stringify({ 
-                            type: "HEARTBEAT_ACK", 
-                            timestamp: Date.now() 
+                        ws.send(JSON.stringify({
+                            type: "HEARTBEAT_ACK",
+                            timestamp: Date.now()
                         }));
                     }
                 } else if (message.type === "HEARTBEAT_ACK") {
@@ -496,7 +701,7 @@
             }
 
             // CRITICAL: Base64 to Uint8Array conversion in UI thread
-            // 
+            //
             // This function MUST remain in the UI thread because:
             // 1. Figma plugin main thread lacks browser APIs (no `window.atob`)
             // 2. Only UI thread (iframe context) has access to `window.atob`
@@ -526,6 +731,8 @@
                 if (msg.type === "FILE_IDENTITY") {
                     // Main thread announced which file we are running in
                     fileIdentity = { fileKey: msg.fileKey || null, fileName: msg.fileName || null };
+                    updateFileDisplay();
+                    if (msg.pageName) updatePageDisplay(msg.pageName);
                     // If the socket connected before identity arrived, update the server
                     if (ws && isConnected) {
                         ws.send(JSON.stringify({
@@ -537,12 +744,18 @@
                     return;
                 }
 
+                if (msg.type === "PAGE_INFO") {
+                    // Main thread reports the user's current page
+                    updatePageDisplay(msg.pageName);
+                    return;
+                }
+
                 if (msg.type === "CONVERT_BASE64_TO_UINT8ARRAY") {
                     try {
                         console.log('🔄 UI: Converting Base64 to Uint8Array, length:', msg.base64.length);
                         const uint8Array = base64ToUint8Array(msg.base64);
                         console.log('✅ UI: Base64 conversion successful, array length:', uint8Array.length);
-                        
+
                         // Send back as regular array (Uint8Array doesn't serialize well)
                         parent.postMessage({
                             pluginMessage: {
@@ -577,7 +790,7 @@
                     const success = !msg.error;
                     const data = msg.result || null;
                     sendResponse(msg.id, success, data, msg.error);
-                    logCommand(msg.operation || msg.type || "UNKNOWN", success);
+                    logCommand(msg.operation || msg.type || "UNKNOWN", success, msg.page || null);
                 }
             });
 
@@ -594,8 +807,13 @@
                 log(`Debug mode ${debugMode ? "enabled" : "disabled"}`);
             });
 
+            fileKeyEl.addEventListener("click", copyFileKey);
+            fileKeyEl.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" || e.key === " ") { e.preventDefault(); copyFileKey(); }
+            });
+
             // Initialize
-            // Silent UI load
+            renderActivity();
             setTimeout(connect, 1000);
         </script>
     </body>

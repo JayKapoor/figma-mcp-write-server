@@ -86,25 +86,40 @@ class FigmaPlugin {
         : sanitizePayload(payload);
 
       const result = await handler(safePayload);
-      
-      figma.ui.postMessage(createOperationSuccessMessage(id, operation, result));
+
+      figma.ui.postMessage({ ...createOperationSuccessMessage(id, operation, result), page: this.currentPageName() });
       // Success - no logging needed
-      
+
     } catch (error) {
       logger.error(`${operation} failed:`, error.toString());
-      figma.ui.postMessage(createOperationErrorMessage(id, operation, error));
+      figma.ui.postMessage({ ...createOperationErrorMessage(id, operation, error), page: this.currentPageName() });
     }
   }
 
 
+  private currentPageName(): string | null {
+    try {
+      return figma.currentPage?.name ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   async start(): Promise<void> {
     try {
-      // Show UI for WebSocket connection and monitoring
-      figma.showUI(__html__, { width: 224, height: 210 });
+      // Show UI for WebSocket connection and monitoring.
+      // themeColors injects --figma-color-* CSS variables so the UI matches
+      // the user's light/dark Figma theme.
+      figma.showUI(__html__, { width: 252, height: 420, themeColors: true });
 
       // Tell the UI thread which file we are in so it can announce itself to
       // the server (file-key routing). figma.fileKey needs enablePrivatePluginApi.
       this.sendFileIdentity();
+
+      // Keep the UI's "working in" line current as the user moves between pages
+      figma.on('currentpagechange', () => {
+        figma.ui.postMessage({ type: 'PAGE_INFO', pageName: this.currentPageName() });
+      });
 
       // Set up plugin lifecycle handlers
       this.setupLifecycleHandlers();
@@ -129,7 +144,7 @@ class FigmaPlugin {
     } catch {
       // root not ready
     }
-    figma.ui.postMessage({ type: 'FILE_IDENTITY', fileKey, fileName });
+    figma.ui.postMessage({ type: 'FILE_IDENTITY', fileKey, fileName, pageName: this.currentPageName() });
   }
 
   private setupLifecycleHandlers(): void {
