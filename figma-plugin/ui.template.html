@@ -72,15 +72,10 @@
                 .status-dot.connecting, .status-dot.pulse { animation: none; }
             }
 
-            .wordmark {
-                font-size: 12px;
-                font-weight: 700;
-                letter-spacing: 0.08em;
-            }
-
             .status-label {
-                font-size: 10px;
-                color: var(--text-3);
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--text);
                 flex: 1;
                 white-space: nowrap;
                 overflow: hidden;
@@ -183,18 +178,6 @@
                 overflow: hidden;
                 text-overflow: ellipsis;
                 color: var(--text-2);
-            }
-            .session-row.self .session-name {
-                color: var(--text);
-                font-weight: 600;
-            }
-
-            .session-tag {
-                margin-left: auto;
-                font-family: var(--mono);
-                font-size: 8.5px;
-                color: var(--text-3);
-                flex-shrink: 0;
             }
 
             /* ── Stats ───────────────────────────────── */
@@ -326,7 +309,6 @@
     <body>
         <div class="header">
             <div class="status-dot" id="statusDot"></div>
-            <div class="wordmark">Morph</div>
             <div class="status-label" id="connectionStatus">Connecting…</div>
             <div class="version">v{{VERSION}}</div>
         </div>
@@ -345,7 +327,7 @@
         </div>
 
         <div class="session" id="sessionSection" style="display: none;">
-            <div class="eyebrow">Session files</div>
+            <div class="eyebrow">Also connected</div>
             <div id="sessionList"></div>
         </div>
 
@@ -410,6 +392,9 @@
             const MAX_ACTIVITY = 30;
             let activity = [];
 
+            // Last session broadcast, kept so identity arriving late can re-filter
+            let lastSessionFiles = [];
+
             // DOM elements
             const statusDot = document.getElementById("statusDot");
             const connectionStatus = document.getElementById("connectionStatus");
@@ -436,22 +421,23 @@
                 }
             }
 
-            function logCommand(operation, success = null, page = null) {
+            function logCommand(operation, success = null, page = null, errorText = null) {
                 stats.commands++;
                 if (success === false) stats.errors++;
                 updateStats();
-                addActivity(operation, success, page);
+                addActivity(operation, success, page, errorText);
 
                 const message = success === null ? operation :
                     success ? `${operation} executed` : `${operation} failed`;
                 log(message, success === false ? "error" : "info");
             }
 
-            function addActivity(operation, success, page) {
+            function addActivity(operation, success, page, errorText) {
                 activity.unshift({
                     op: String(operation || "unknown").toLowerCase(),
                     ok: success !== false,
                     page: page || null,
+                    err: errorText ? String(errorText).slice(0, 200) : null,
                     time: new Date()
                 });
                 if (activity.length > MAX_ACTIVITY) activity.pop();
@@ -468,7 +454,9 @@
                     const ss = String(t.getSeconds()).padStart(2, "0");
                     const row = document.createElement("div");
                     row.className = "activity-row" + (entry.ok ? "" : " failed");
-                    row.title = `${entry.op} · ${hh}:${mm}:${ss}` + (entry.page ? ` · page: ${entry.page}` : "");
+                    row.title = `${entry.op} · ${hh}:${mm}:${ss}`
+                        + (entry.page ? ` · page: ${entry.page}` : "")
+                        + (entry.err ? `\n${entry.err}` : "");
                     const mark = document.createElement("span");
                     mark.className = "op-mark";
                     mark.textContent = entry.ok ? "✓" : "✕";
@@ -509,28 +497,26 @@
             }
 
             function renderSession(files) {
-                // Only worth showing when more than one file shares the server
-                if (!files || files.length <= 1) {
+                lastSessionFiles = files || [];
+                // This file already owns the card above; list only the others
+                const others = (files || []).filter(f =>
+                    !(f.fileKey && fileIdentity.fileKey && f.fileKey === fileIdentity.fileKey));
+                if (!others.length) {
                     sessionSection.style.display = "none";
                     return;
                 }
                 sessionSection.style.display = "block";
-                const rows = files.map(f => {
-                    const isSelf = f.fileKey && fileIdentity.fileKey && f.fileKey === fileIdentity.fileKey;
+                const rows = others.map(f => {
                     const row = document.createElement("div");
-                    row.className = "session-row" + (isSelf ? " self" : "");
+                    row.className = "session-row";
                     const dot = document.createElement("span");
                     dot.className = "session-dot";
                     const name = document.createElement("span");
                     name.className = "session-name";
                     name.textContent = f.fileName || "Untitled file";
                     name.title = f.fileName || "";
-                    const tag = document.createElement("span");
-                    tag.className = "session-tag";
-                    tag.textContent = isSelf ? "this file" : "";
                     row.appendChild(dot);
                     row.appendChild(name);
-                    row.appendChild(tag);
                     return row;
                 });
                 sessionList.replaceChildren(...rows);
@@ -808,6 +794,7 @@
                     fileIdentity = { fileKey: msg.fileKey || null, fileName: msg.fileName || null };
                     updateFileDisplay();
                     if (msg.pageName) updatePageDisplay(msg.pageName);
+                    renderSession(lastSessionFiles);
                     // If the socket connected before identity arrived, update the server
                     if (ws && isConnected) {
                         ws.send(JSON.stringify({
@@ -865,7 +852,8 @@
                     const success = !msg.error;
                     const data = msg.result || null;
                     sendResponse(msg.id, success, data, msg.error);
-                    logCommand(msg.operation || msg.type || "UNKNOWN", success, msg.page || null);
+                    const errText = msg.error ? (msg.error.message || (typeof msg.error === "string" ? msg.error : JSON.stringify(msg.error))) : null;
+                    logCommand(msg.operation || msg.type || "UNKNOWN", success, msg.page || null, errText);
                 }
             });
 
