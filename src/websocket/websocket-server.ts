@@ -134,6 +134,7 @@ export class FigmaWebSocketServer extends EventEmitter {
         if (conn) {
           this.connections.delete(ws);
           logger.log(`🔌 Plugin disconnected: ${conn.fileName || 'unknown file'} (${conn.fileKey || 'no key'})`);
+          this.broadcastConnectedFiles();
           if (this.connections.size === 0) {
             this.connectionStatus.pluginConnected = false;
             this.connectionStatus.connectionHealth = 'unhealthy';
@@ -235,6 +236,9 @@ export class FigmaWebSocketServer extends EventEmitter {
       // Emit plugin connected event for initialization tasks
       this.emit('pluginConnected');
 
+      // Let every plugin UI show the full session (all connected files)
+      this.broadcastConnectedFiles();
+
       return;
     }
 
@@ -247,6 +251,7 @@ export class FigmaWebSocketServer extends EventEmitter {
         conn.fileName = message.fileName || conn.fileName;
         logger.debug(`🔌 Plugin identity updated: ${conn.fileName} (${conn.fileKey})`);
         this.processRequestQueue();
+        this.broadcastConnectedFiles();
       }
       return;
     }
@@ -425,6 +430,24 @@ export class FigmaWebSocketServer extends EventEmitter {
         this.processRequestQueue();
       }
     });
+  }
+
+  // Push the current session (every connected file) to all plugin UIs so each
+  // modal can show which files are live, not just its own.
+  private broadcastConnectedFiles(): void {
+    const files = Array.from(this.connections.values()).map(conn => ({
+      fileKey: conn.fileKey,
+      fileName: conn.fileName,
+      connectedAt: conn.connectedAt
+    }));
+    const message = JSON.stringify({ type: 'CONNECTED_FILES', files });
+    for (const conn of this.connections.values()) {
+      try {
+        conn.ws.send(message);
+      } catch {
+        // Socket already closing; the close handler will rebroadcast
+      }
+    }
   }
 
   private findConnectionByFileKey(fileKey: string): PluginConnection | undefined {

@@ -159,6 +159,44 @@
 
             .endpoint { flex-shrink: 0; }
 
+            /* ── Session files ───────────────────────── */
+            .session { flex-shrink: 0; }
+
+            .session-row {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 3px 2px;
+                font-size: 10.5px;
+                white-space: nowrap;
+            }
+
+            .session-dot {
+                width: 5px;
+                height: 5px;
+                border-radius: 50%;
+                background: var(--success);
+                flex-shrink: 0;
+            }
+
+            .session-name {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                color: var(--text-2);
+            }
+            .session-row.self .session-name {
+                color: var(--text);
+                font-weight: 600;
+            }
+
+            .session-tag {
+                margin-left: auto;
+                font-family: var(--mono);
+                font-size: 8.5px;
+                color: var(--text-3);
+                flex-shrink: 0;
+            }
+
             /* ── Stats ───────────────────────────────── */
             .stats {
                 display: grid;
@@ -306,6 +344,11 @@
             </div>
         </div>
 
+        <div class="session" id="sessionSection" style="display: none;">
+            <div class="eyebrow">Session files</div>
+            <div id="sessionList"></div>
+        </div>
+
         <div class="stats">
             <div class="stat">
                 <div class="stat-value" id="commandCount">0</div>
@@ -382,6 +425,8 @@
             const endpointEl = document.getElementById("endpoint");
             const activityList = document.getElementById("activityList");
             const activityEmpty = document.getElementById("activityEmpty");
+            const sessionSection = document.getElementById("sessionSection");
+            const sessionList = document.getElementById("sessionList");
 
             function log(message, level = "info") {
                 if (debugMode) {
@@ -461,6 +506,34 @@
             function updatePageDisplay(pageName) {
                 pageNameEl.textContent = pageName || "—";
                 pageNameEl.title = pageName || "";
+            }
+
+            function renderSession(files) {
+                // Only worth showing when more than one file shares the server
+                if (!files || files.length <= 1) {
+                    sessionSection.style.display = "none";
+                    return;
+                }
+                sessionSection.style.display = "block";
+                const rows = files.map(f => {
+                    const isSelf = f.fileKey && fileIdentity.fileKey && f.fileKey === fileIdentity.fileKey;
+                    const row = document.createElement("div");
+                    row.className = "session-row" + (isSelf ? " self" : "");
+                    const dot = document.createElement("span");
+                    dot.className = "session-dot";
+                    const name = document.createElement("span");
+                    name.className = "session-name";
+                    name.textContent = f.fileName || "Untitled file";
+                    name.title = f.fileName || "";
+                    const tag = document.createElement("span");
+                    tag.className = "session-tag";
+                    tag.textContent = isSelf ? "this file" : "";
+                    row.appendChild(dot);
+                    row.appendChild(name);
+                    row.appendChild(tag);
+                    return row;
+                });
+                sessionList.replaceChildren(...rows);
             }
 
             function copyFileKey() {
@@ -668,6 +741,8 @@
                     }, "*");
                 } else if (message.type === "CONNECTED") {
                     // Silent server acknowledgment
+                } else if (message.type === "CONNECTED_FILES") {
+                    renderSession(message.files);
                 } else if (message.type === "HEARTBEAT") {
                     if (debugMode) {
                         console.log("[DEBUG] Heartbeat received");

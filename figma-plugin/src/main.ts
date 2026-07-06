@@ -110,7 +110,7 @@ class FigmaPlugin {
       // Show UI for WebSocket connection and monitoring.
       // themeColors injects --figma-color-* CSS variables so the UI matches
       // the user's light/dark Figma theme.
-      figma.showUI(__html__, { width: 252, height: 420, themeColors: true });
+      figma.showUI(__html__, { width: 252, height: 440, themeColors: true });
 
       // Tell the UI thread which file we are in so it can announce itself to
       // the server (file-key routing). figma.fileKey needs enablePrivatePluginApi.

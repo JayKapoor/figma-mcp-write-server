@@ -1,5 +1,5 @@
 {
-  "name": "Figma MCP Plugin",
+  "name": "Morph",
   "id": "figma-mcp-write-plugin",
   "api": "1.0.0",
   "main": "code.js",
